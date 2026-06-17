@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cyber Cat Music Visualizer</title>
+    <style>
+        body {
+            margin: 0;
+            background: #0a0a0a;
+            color: white;
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        /* SLEEK ULTRA-COMPACT CONTROLLER CAPSULED IN THE CORNER */
+        .controls {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            z-index: 10;
+            background: rgba(10, 10, 10, 0.6);
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            backdrop-filter: blur(6px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+        .track-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: rgba(255, 255, 255, 0.6);
+            max-width: 150px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        /* SLEEK TIMELINE PROGRESS SLIDER */
+        .progress-bar {
+            width: 100%;
+            margin: 2px 0 6px 0;
+            accent-color: #00ffcc;
+            cursor: pointer;
+            height: 4px;
+            border-radius: 2px;
+        }
+        .btn-group {
+            display: flex;
+            gap: 12px;
+        }
+        button {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.2s, transform 0.1s;
+            padding: 4px;
+        }
+        button:hover {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+        audio {
+            display: none; /* Hidden to make space for our custom buttons */
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="visualizer"></canvas>
+
+    <div class="controls">
+        <div id="trackTitle" class="track-title">Loading...</div>
+        
+        <!-- Interactive scrubbing timeline track slider -->
+        <input type="range" id="progressBar" class="progress-bar" value="0" min="0" step="0.1">
+        
+        <div class="btn-group">
+            <button id="prevBtn">⏮</button>
+            <button id="playBtn">▶</button>
+            <button id="nextBtn">⏭</button>
+        </div>
+        <audio id="audio"></audio>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+
+
