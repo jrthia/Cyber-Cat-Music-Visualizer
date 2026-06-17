@@ -5,6 +5,7 @@ const ctx = canvas.getContext('2d');
 const playBtn = document.getElementById('playBtn');
 const prevBtn = document.getElementById('prevBtn');
 const nextBtn = document.getElementById('nextBtn');
+const shuffleBtn = document.getElementById('shuffleBtn'); // Linked if using an HTML button
 const trackTitle = document.getElementById('trackTitle');
 const progressBar = document.getElementById('progressBar'); 
 const dropZone = document.getElementById('dropZone');
@@ -18,13 +19,67 @@ let analyzer;
 let source;
 let globalHue = 0;
 
-// Default sample track setup
-const defaultPlaylist = ["Alan Walker - Dreamer.mp3"];
+// Track library array
+const defaultPlaylist = [
+    "Alan Walker - Dreamer.mp3", 
+    "Jim Yosef - Lights.mp3",
+    "AC Black Flag.mp3",
+    "Center Of Gravity.mp3",
+    "EYNKA - Symphony.mp3", 
+    "Gold (LoFi).mp3",
+    "Hedwig's Theme.mp3",
+    "Highscore.mp3",
+    "Jack Sparrow.mp3",
+    "Lavender.mp3",
+    "MDK - Pandora.mp3", // Fixed missing .mp3 suffix parameter
+    "Moonlight Sonata.mp3",
+    "Pegasus.mp3",
+    "Polaris.mp3",
+    "Portal.mp3",
+    "Robby East & A.M.R - Marula.mp3",
+    "Saga.mp3",
+    "Y do I - Muse .mp3"
+];
 
-// Dynamic arrays to hold custom imported user music objects
 let userPlaylist = []; 
 let currentTrackIndex = 0;
 let isUsingUserPlaylist = false;
+
+// ==========================================
+// NEW: SMART PLAYLIST SHUFFLE ALGORITHM
+// ==========================================
+function shufflePlaylist() {
+    // Determine which array list is actively being read by the user
+    let currentList = isUsingUserPlaylist ? userPlaylist : defaultPlaylist;
+    if (currentList.length <= 1) return; // Nothing to randomize if empty or 1 song
+
+    // Store the exact track playing right now so we don't lose our place
+    const currentlyPlayingTrack = currentList[currentTrackIndex];
+
+    // Fisher-Yates Shuffle Execution Loop
+    for (let i = currentList.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        // Swap elements inline
+        [currentList[i], currentList[j]] = [currentList[j], currentList[i]];
+    }
+
+    // Find where our playing song ended up in the randomized list and update the index pointer
+    currentTrackIndex = currentList.indexOf(currentlyPlayingTrack);
+}
+
+// Automatically shuffle the 18 songs the millisecond the website opens
+shufflePlaylist();
+
+// Optional: Link to your HTML button layout if you choose to include one
+if (shuffleBtn) {
+    shuffleBtn.onclick = function() {
+        shufflePlaylist();
+        // Refresh the text display to show the layout changes, but keep playing
+        const currentList = isUsingUserPlaylist ? userPlaylist : defaultPlaylist;
+        const currentTrack = currentList[currentTrackIndex];
+        trackTitle.innerText = isUsingUserPlaylist ? currentTrack.name : currentTrack.replace('.mp3', '') + " (Or Add Music)";
+    };
+}
 
 // Unified track loading coordinator with sample song prompt
 function loadTrack(index) {
@@ -34,15 +89,13 @@ function loadTrack(index) {
         trackTitle.innerText = currentTrack.name;
     } else if (defaultPlaylist.length > 0) {
         audio.src = defaultPlaylist[index];
-        // Displays the track name with custom instruction prompts
-        trackTitle.innerText = defaultPlaylist[index].replace('.mp3', '') + " (Or Add Music)";
+        trackTitle.innerText = defaultPlaylist[index].replace('.mp3', '');
     } else {
         trackTitle.innerText = "Click 'Add Music' To Start";
     }
     progressBar.value = 0;
 }
 loadTrack(currentTrackIndex);
-
 
 
 // Custom Media Button Play Trigger
@@ -180,7 +233,7 @@ function drawAudioFaceContour(dataArray, bufferLength, centerX, centerY) {
     }
 }
 
-}
+
 
 // Drag over interceptors to prevent default browser page redirections
 window.addEventListener('dragover', (e) => e.preventDefault());
