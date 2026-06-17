@@ -22,7 +22,6 @@ let globalHue = 0;
 // Track library array
 const defaultPlaylist = [
     "Alan Walker - Dreamer.mp3", 
-    "Jim Yosef - Lights.mp3",
 ];
 
 let userPlaylist = []; 
