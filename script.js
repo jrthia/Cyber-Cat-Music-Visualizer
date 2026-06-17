@@ -7,6 +7,8 @@ const prevBtn = document.getElementById('prevBtn');
 const nextBtn = document.getElementById('nextBtn');
 const trackTitle = document.getElementById('trackTitle');
 const progressBar = document.getElementById('progressBar'); 
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
 
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
@@ -16,23 +18,34 @@ let analyzer;
 let source;
 let globalHue = 0;
 
-// ==========================================
-// ⚠️ PLAYLIST REGISTRY: ADD YOUR SONGS HERE!
-// ==========================================
-const playlist = [
-    "Alan Walker - Dreamer.mp3",
-    "song2.mp3",
-    "song3.mp3"
-];
+// Default sample track setup
+const defaultPlaylist = ["Alan Walker - Dreamer.mp3"];
 
+// Dynamic arrays to hold custom imported user music objects
+let userPlaylist = []; 
 let currentTrackIndex = 0;
+let isUsingUserPlaylist = false;
 
+// Unified track loading coordinator with sample song prompt
 function loadTrack(index) {
-    audio.src = playlist[index];
-    trackTitle.innerText = playlist[index].replace('.mp3', '');
+    if (isUsingUserPlaylist && userPlaylist.length > 0) {
+        const currentTrack = userPlaylist[index];
+        audio.src = currentTrack.url;
+        trackTitle.innerText = currentTrack.name;
+    } else if (defaultPlaylist.length > 0) {
+        audio.src = defaultPlaylist[index];
+        // Displays the track name with custom instruction prompts
+        trackTitle.innerText = defaultPlaylist[index].replace('.mp3', '') + " (Or Add Music)";
+    } else {
+        trackTitle.innerText = "Click 'Add Music' To Start";
+    }
     progressBar.value = 0;
 }
 loadTrack(currentTrackIndex);
+
+
+
+// Custom Media Button Play Trigger
 playBtn.onclick = function() {
     if (!audioContext) { setupAudioContext(); }
     if (audio.paused) {
@@ -44,22 +57,34 @@ playBtn.onclick = function() {
     }
 };
 
+// Next Track Button (Dynamically targets the active list array lengths)
 nextBtn.onclick = function() {
-    currentTrackIndex = (currentTrackIndex + 1) % playlist.length;
+    const activeLength = isUsingUserPlaylist ? userPlaylist.length : defaultPlaylist.length;
+    currentTrackIndex = (currentTrackIndex + 1) % activeLength;
     changeTrack(currentTrackIndex);
 };
 
+// Previous Track Button
 prevBtn.onclick = function() {
-    currentTrackIndex = (currentTrackIndex - 1 + playlist.length) % playlist.length;
+    const activeLength = isUsingUserPlaylist ? userPlaylist.length : defaultPlaylist.length;
+    currentTrackIndex = (currentTrackIndex - 1 + activeLength) % activeLength;
     changeTrack(currentTrackIndex);
 };
 
+// Smart end-of-song handler: Auto-advances through the queue or loops single tracks
 audio.onended = function() {
-    currentTrackIndex = (currentTrackIndex + 1) % playlist.length;
-    changeTrack(currentTrackIndex);
+    const activeLength = isUsingUserPlaylist ? userPlaylist.length : defaultPlaylist.length;
+    
+    if (isUsingUserPlaylist && userPlaylist.length === 1) {
+        audio.currentTime = 0;
+        audio.play();
+    } else {
+        currentTrackIndex = (currentTrackIndex + 1) % activeLength;
+        changeTrack(currentTrackIndex);
+    }
 };
 
-// Update progress bar automatically as the song plays
+// Timeline progress track automatic thumb advancement
 audio.ontimeupdate = function() {
     if (audio.duration) {
         progressBar.max = audio.duration;
@@ -67,7 +92,6 @@ audio.ontimeupdate = function() {
     }
 };
 
-// Seek to a specific timestamp when the user drags the slider
 progressBar.oninput = function() {
     audio.currentTime = progressBar.value;
 };
@@ -89,6 +113,8 @@ function setupAudioContext() {
     analyzer.connect(audioContext.destination);
     draw();
 }
+
+
 function draw() {
     requestAnimationFrame(draw);
     
@@ -112,6 +138,7 @@ function draw() {
     for(let i = 30; i < 60; i++) { midSum += dataArray[i]; }
     const averageMids = midSum / 30;
     
+    // Core Layout Render Stack
     drawAudioFaceContour(dataArray, bufferLength, centerX, centerY);
     drawFluidPolygonEars(dataArray, centerX, centerY);
     drawPulsingEyes(averageBass, centerX, centerY);
@@ -129,9 +156,6 @@ function drawAudioFaceContour(dataArray, bufferLength, centerX, centerY) {
         const barLength = Math.pow(value / 255, 1.4) * 75;
         const angle = i * angleStep;
 
-        // FIXED: Forehead filter code completely deleted! 
-        // Audio bars will now cleanly display 100% across the skull loop.
-
         const startX = centerX + Math.cos(angle) * baseRadius;
         const startY = centerY + Math.sin(angle) * baseRadius;
         const endX = centerX + Math.cos(angle) * (baseRadius + barLength);
@@ -140,73 +164,120 @@ function drawAudioFaceContour(dataArray, bufferLength, centerX, centerY) {
         renderNeonLine(startX, startY, endX, endY, 3.5);
     }
 }
+
+// Drag over interceptors to prevent default browser page redirections
+window.addEventListener('dragover', (e) => e.preventDefault());
+window.addEventListener('drop', (e) => e.preventDefault());
+window.addEventListener('dragenter', () => dropZone.classList.add('dragover'));
+window.addEventListener('dragover', () => dropZone.classList.add('dragover'));
+window.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+
+// Desktop Drag and Drop file parsing ingestion
+window.addEventListener('drop', (e) => {
+    dropZone.classList.remove('dragover');
+    const files = e.dataTransfer.files; 
+    processIncomingFiles(files);
+});
+
+// Click and Mobile Tap file browser browsing selection
+dropZone.onclick = () => fileInput.click();
+fileInput.onchange = function(e) {
+    const files = e.target.files; 
+    processIncomingFiles(files);
+};
+
+// Dynamic list queue array processor loop
+function processIncomingFiles(fileList) {
+    if (!fileList || fileList.length === 0) return;
+    userPlaylist = []; // Reset current user tracking array queue on raw load hook
+    
+    for (let i = 0; i < fileList.length; i++) {
+        const file = fileList[i];
+        if (file.type.startsWith('audio/')) {
+            userPlaylist.push({
+                url: URL.createObjectURL(file),
+                name: file.name.replace('.mp3', '')
+            });
+        }
+    }
+
+    if (userPlaylist.length > 0) {
+        isUsingUserPlaylist = true;
+        currentTrackIndex = 0;
+        loadTrack(currentTrackIndex);
+        if (!audioContext) { setupAudioContext(); }
+        audio.play();
+        playBtn.innerText = "⏸";
+    }
+}
+
 function drawFluidPolygonEars(dataArray, centerX, centerY) {
-    // High treble frequencies pull the tips up dynamically
+    // Smooth, natural ear bouncing physics profile multiplier
     const earPulse = (dataArray[80] / 255) * 45; 
 
-    // Left Ear Triangle Coordinates
+    // Left Geometric Ear Node Points
     const lBaseOuter = { x: centerX - 105, y: centerY - 45 };
     const lTip       = { x: centerX - 120 - (earPulse * 0.3), y: centerY - 150 - earPulse };
     const lBaseInner = { x: centerX - 35, y: centerY - 105 };
 
-    // Right Ear Triangle Coordinates
+    // Right Geometric Ear Node Points
     const rBaseInner = { x: centerX + 35, y: centerY - 105 };
     const rTip       = { x: centerX + 120 + (earPulse * 0.3), y: centerY - 150 - earPulse };
     const rBaseOuter = { x: centerX + 105, y: centerY - 45 };
 
-    // --- DRAW LEFT EAR ---
+    // --- DRAW LEFT CLOSED EAR ---
     ctx.save();
-    ctx.shadowBlur = 12;
+    ctx.shadowBlur = 12; 
     ctx.shadowColor = `hsla(${globalHue}, 80%, 40%, 0.45)`;
-    ctx.strokeStyle = `hsla(${globalHue}, 80%, 40%, 0.95)`;
+    ctx.strokeStyle = `hsla(${globalHue}, 80%, 40%, 0.955)`;
     ctx.fillStyle = `hsla(${globalHue}, 80%, 35%, 0.08)`;
-    ctx.lineWidth = 4.5;
-    ctx.lineJoin = 'round';
+    ctx.lineWidth = 4.5; 
+    ctx.lineJoin = 'round'; 
     ctx.lineCap = 'round';
 
     ctx.beginPath();
-    ctx.moveTo(lBaseOuter.x, lBaseOuter.y);
-    ctx.lineTo(lTip.x, lTip.y);
+    ctx.moveTo(lBaseOuter.x, lBaseOuter.y); 
+    ctx.lineTo(lTip.x, lTip.y); 
     ctx.lineTo(lBaseInner.x, lBaseInner.y);
-    ctx.closePath(); // Closes the triangle perfectly
-    ctx.fill();
+    ctx.closePath(); 
+    ctx.fill(); 
     ctx.stroke();
 
-    // Inner mechanical tracing lines
-    ctx.lineWidth = 2;
+    // Left inner technical accents
+    ctx.lineWidth = 2; 
     ctx.strokeStyle = `hsla(${globalHue}, 80%, 50%, 0.5)`;
-    ctx.beginPath();
-    ctx.moveTo(lBaseOuter.x + 12, lBaseOuter.y - 12);
-    ctx.lineTo(lTip.x + 8, lTip.y + 20);
-    ctx.lineTo(lBaseInner.x - 8, lBaseInner.y - 2);
+    ctx.beginPath(); 
+    ctx.moveTo(lBaseOuter.x + 12, lBaseOuter.y - 12); 
+    ctx.lineTo(lTip.x + 8, lTip.y + 20); 
+    ctx.lineTo(lBaseInner.x - 8, lBaseInner.y - 2); 
     ctx.stroke();
     ctx.restore();
 
-    // --- DRAW RIGHT EAR ---
+    // --- DRAW RIGHT CLOSED EAR ---
     ctx.save();
-    ctx.shadowBlur = 12;
+    ctx.shadowBlur = 12; 
     ctx.shadowColor = `hsla(${globalHue}, 80%, 40%, 0.45)`;
-    ctx.strokeStyle = `hsla(${globalHue}, 80%, 40%, 0.95)`;
+    ctx.strokeStyle = `hsla(${globalHue}, 80%, 40%, 0.955)`;
     ctx.fillStyle = `hsla(${globalHue}, 80%, 35%, 0.08)`;
-    ctx.lineWidth = 4.5;
-    ctx.lineJoin = 'round';
+    ctx.lineWidth = 4.5; 
+    ctx.lineJoin = 'round'; 
     ctx.lineCap = 'round';
 
     ctx.beginPath();
-    ctx.moveTo(rBaseOuter.x, rBaseOuter.y);
-    ctx.lineTo(rTip.x, rTip.y);
+    ctx.moveTo(rBaseOuter.x, rBaseOuter.y); 
+    ctx.lineTo(rTip.x, rTip.y); 
     ctx.lineTo(rBaseInner.x, rBaseInner.y);
-    ctx.closePath(); // Closes the triangle perfectly
-    ctx.fill();
+    ctx.closePath(); 
+    ctx.fill(); 
     ctx.stroke();
 
-    // Inner mechanical tracing lines
-    ctx.lineWidth = 2;
+    // Right inner technical accents
+    ctx.lineWidth = 2; 
     ctx.strokeStyle = `hsla(${globalHue}, 80%, 50%, 0.5)`;
-    ctx.beginPath();
-    ctx.moveTo(rBaseOuter.x - 12, rBaseOuter.y - 12);
-    ctx.lineTo(rTip.x - 8, rTip.y + 20);
-    ctx.lineTo(rBaseInner.x + 8, rBaseInner.y - 2);
+    ctx.beginPath(); 
+    ctx.moveTo(rBaseOuter.x - 12, rBaseOuter.y - 12); 
+    ctx.lineTo(rTip.x - 8, rTip.y + 20); 
+    ctx.lineTo(rBaseInner.x + 8, rBaseInner.y - 2); 
     ctx.stroke();
     ctx.restore();
 }
@@ -217,52 +288,37 @@ function drawFlashingNose(mids, centerX, centerY) {
     const noseHeight = 10;
     const dynamicLightness = 40 + (mids / 255) * 45; 
     const dynamicOpacity = 0.5 + (mids / 255) * 0.4;
-
+    
     ctx.save();
-    ctx.shadowBlur = 15;
+    ctx.shadowBlur = 15; 
     ctx.shadowColor = `hsla(${globalHue}, 90%, ${dynamicLightness}%, ${dynamicOpacity})`;
     ctx.fillStyle = `hsla(${globalHue}, 90%, ${dynamicLightness}%, ${dynamicOpacity})`;
     
-    ctx.beginPath();
+    ctx.beginPath(); 
     ctx.moveTo(centerX - noseWidth / 2, noseY); 
     ctx.lineTo(centerX + noseWidth / 2, noseY); 
     ctx.lineTo(centerX, noseY + noseHeight); 
-    ctx.closePath();
-    ctx.fill();
+    ctx.closePath(); 
+    ctx.fill(); 
     ctx.restore();
 }
 
 function drawStraightWhiskers(mids, centerX, centerY) {
     const whiskerY = centerY + 41; 
-    const startOffset = 8;     
-    
-    // MUCH HIGHER REACTIVITY MULTIPLIER:
-    // Increased from 14 to 40 for a highly noticeable, dramatic push!
+    const startOffset = 8; 
     const twitch = (mids / 255) * 40; 
+    const baseLength = 40;
     
-    const baseLength = 40; // The starting length on quiet beats
-
-    // --- LEFT WHISKERS ---
     const lx = centerX - startOffset;
-    
-    // Top Left: Flares upwards and outwards
     renderNeonLine(lx, whiskerY - 4, lx - baseLength - twitch, whiskerY - 14 - (twitch * 0.3), 2.5);
-    // Middle Left: Punches straight out
     renderNeonLine(lx, whiskerY, lx - baseLength - twitch - 6, whiskerY, 2.5);
-    // Bottom Left: Flares downwards and outwards
     renderNeonLine(lx, whiskerY + 4, lx - baseLength - twitch, whiskerY + 14 + (twitch * 0.3), 2.5);
-
-    // --- RIGHT WHISKERS ---
-    const rx = centerX + startOffset;
     
-    // Top Right: Flares upwards and outwards
+    const rx = centerX + startOffset;
     renderNeonLine(rx, whiskerY - 4, rx + baseLength + twitch, whiskerY - 14 - (twitch * 0.3), 2.5);
-    // Middle Right: Punches straight out
     renderNeonLine(rx, whiskerY, rx + baseLength + twitch + 6, whiskerY, 2.5);
-    // Bottom Right: Flares downwards and outwards
     renderNeonLine(rx, whiskerY + 4, rx + baseLength + twitch, whiskerY + 14 + (twitch * 0.3), 2.5);
 }
-
 
 function drawCuteCatMouth(bass, centerX, centerY) {
     const mouthTopY = centerY + 46; 
@@ -271,18 +327,18 @@ function drawCuteCatMouth(bass, centerX, centerY) {
     const dynamicOpacity = 0.6 + (bass / 255) * 0.3;
     
     ctx.save();
-    ctx.shadowBlur = 10;
+    ctx.shadowBlur = 10; 
     ctx.shadowColor = `hsla(${globalHue}, 80%, 40%, 0.35)`;
     ctx.strokeStyle = `hsla(${globalHue}, 80%, 40%, ${dynamicOpacity})`;
-    ctx.lineWidth = 2.5;
+    ctx.lineWidth = 2.5; 
     ctx.lineCap = 'round';
     
-    ctx.beginPath();
+    ctx.beginPath(); 
     ctx.moveTo(centerX, mouthTopY);
     ctx.quadraticCurveTo(centerX - mouthWidth / 2, mouthTopY + mouthDepth, centerX - mouthWidth, mouthTopY + 1);
     ctx.stroke();
     
-    ctx.beginPath();
+    ctx.beginPath(); 
     ctx.moveTo(centerX, mouthTopY);
     ctx.quadraticCurveTo(centerX + mouthWidth / 2, mouthTopY + mouthDepth, centerX + mouthWidth, mouthTopY + 1);
     ctx.stroke();

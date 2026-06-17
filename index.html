@@ -79,6 +79,35 @@
             opacity: 1;
             transform: scale(1.1);
         }
+        
+        /* UNIVERSAL TOP-LEFT ADD MUSIC BOX BUTTON */
+        .drop-zone {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            z-index: 10;
+            background: rgba(10, 10, 10, 0.6);
+            border: 1px dashed rgba(255, 255, 255, 0.2);
+            padding: 12px 20px;
+            border-radius: 20px;
+            font-size: 11px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.5);
+            transition: all 0.3s ease;
+            backdrop-filter: blur(6px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            user-select: none;
+            cursor: pointer;
+        }
+        /* Highlights instantly during mouse drag operations */
+        .drop-zone.dragover {
+            border-color: #00ffcc;
+            color: #00ffcc;
+            background: rgba(0, 255, 204, 0.05);
+            box-shadow: 0 0 15px rgba(0, 255, 204, 0.2);
+        }
+        
         audio {
             display: none; /* Hidden to make space for our custom buttons */
         }
@@ -87,6 +116,13 @@
 <body>
 
     <canvas id="visualizer"></canvas>
+
+    <!-- Unified Desktop/Mobile Music Loading Point -->
+    <div id="dropZone" class="drop-zone">
+        Add Music
+    </div>
+    <!-- Hidden file upload listener triggered by the Add Music node -->
+    <input type="file" id="fileInput" accept="audio/*" style="display: none;" multiple>
 
     <div class="controls">
         <div id="trackTitle" class="track-title">Loading...</div>
@@ -105,5 +141,7 @@
     <script src="script.js"></script>
 </body>
 </html>
+
+
 
 
