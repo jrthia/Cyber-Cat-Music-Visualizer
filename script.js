@@ -149,20 +149,37 @@ function draw() {
 
 function drawAudioFaceContour(dataArray, bufferLength, centerX, centerY) {
     const baseRadius = 110;
-    const angleStep = (Math.PI * 2) / bufferLength;
+    
+    const halfLength = Math.floor(bufferLength / 2);
+    const angleStep = Math.PI / halfLength; 
 
-    for (let i = 0; i < bufferLength; i++) {
-        const value = dataArray[i];
+    // BRIDGED GAP FIX: Loop goes up to halfLength + 1 
+    // This forces the final lines to overlap perfectly at the top center.
+    for (let i = 0; i <= halfLength; i++) {
+        // Fallback guard to prevent trying to read past the end of the data array
+        const value = dataArray[i] !== undefined ? dataArray[i] : dataArray[halfLength - 1];
+        
         const barLength = Math.pow(value / 255, 1.4) * 75;
-        const angle = i * angleStep;
+        
+        const rightAngle = (Math.PI / 2) + (i * angleStep);
+        const leftAngle  = (Math.PI / 2) - (i * angleStep);
 
-        const startX = centerX + Math.cos(angle) * baseRadius;
-        const startY = centerY + Math.sin(angle) * baseRadius;
-        const endX = centerX + Math.cos(angle) * (baseRadius + barLength);
-        const endY = centerY + Math.sin(angle) * (baseRadius + barLength);
+        // --- DRAW RIGHT SIDE SPECTRUM ---
+        const rStartX = centerX + Math.cos(rightAngle) * baseRadius;
+        const rStartY = centerY + Math.sin(rightAngle) * baseRadius;
+        const rEndX   = centerX + Math.cos(rightAngle) * (baseRadius + barLength);
+        const rEndY   = centerY + Math.sin(rightAngle) * (baseRadius + barLength);
+        renderNeonLine(rStartX, rStartY, rEndX, rEndY, 3.5);
 
-        renderNeonLine(startX, startY, endX, endY, 3.5);
+        // --- DRAW LEFT SIDE SPECTRUM ---
+        const lStartX = centerX + Math.cos(leftAngle) * baseRadius;
+        const lStartY = centerY + Math.sin(leftAngle) * baseRadius;
+        const lEndX   = centerX + Math.cos(leftAngle) * (baseRadius + barLength);
+        const lEndY   = centerY + Math.sin(leftAngle) * (baseRadius + barLength);
+        renderNeonLine(lStartX, lStartY, lEndX, lEndY, 3.5);
     }
+}
+
 }
 
 // Drag over interceptors to prevent default browser page redirections
