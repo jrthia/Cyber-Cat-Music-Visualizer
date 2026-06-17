@@ -23,22 +23,6 @@ let globalHue = 0;
 const defaultPlaylist = [
     "Alan Walker - Dreamer.mp3", 
     "Jim Yosef - Lights.mp3",
-    "AC Black Flag.mp3",
-    "Center Of Gravity.mp3",
-    "EYNKA - Symphony.mp3", 
-    "Gold (LoFi).mp3",
-    "Hedwig's Theme.mp3",
-    "Highscore.mp3",
-    "Jack Sparrow.mp3",
-    "Lavender.mp3",
-    "MDK - Pandora.mp3", // Fixed missing .mp3 suffix parameter
-    "Moonlight Sonata.mp3",
-    "Pegasus.mp3",
-    "Polaris.mp3",
-    "Portal.mp3",
-    "Robby East & A.M.R - Marula.mp3",
-    "Saga.mp3",
-    "Y do I - Muse .mp3"
 ];
 
 let userPlaylist = []; 
